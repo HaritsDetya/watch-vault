@@ -1,69 +1,245 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { WatchEntry, WatchStatus, MediaType } from '@/types/watch';
+import { getStoredWatchList, saveStoredWatchList } from '@/lib/storage';
+import { Header } from '@/components/Header';
+import { StatsOverview } from '@/components/StatsOverview';
+import { FilterBar } from '@/components/FilterBar';
+import { WatchCard } from '@/components/WatchCard';
+import { WatchDetailModal } from '@/components/WatchDetailModal';
+import { AddWatchModal } from '@/components/AddWatchModal';
+import { SettingsModal } from '@/components/SettingsModal';
+import { Film, Ghost } from 'lucide-react';
 
 export default function Home() {
+  const [entries, setEntries] = useState<WatchEntry[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<MediaType | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<WatchStatus | 'ALL'>('ALL');
+  const [platformFilter, setPlatformFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState<'UPDATED' | 'RATING' | 'EPISODES' | 'TITLE'>('UPDATED');
+
+  // Modals
+  const [activeEntry, setActiveEntry] = useState<WatchEntry | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Load from local storage
+  useEffect(() => {
+    const data = getStoredWatchList();
+    setEntries(data);
+    setIsLoaded(true);
+
+    const handleUpdate = () => {
+      setEntries(getStoredWatchList());
+    };
+    window.addEventListener('watch_vault_updated', handleUpdate);
+    return () => window.removeEventListener('watch_vault_updated', handleUpdate);
+  }, []);
+
+  // Distinct platforms list for filter
+  const platforms = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => {
+      if (e.platform) set.add(e.platform);
+    });
+    return Array.from(set);
+  }, [entries]);
+
+  // Filtered and sorted entries
+  const filteredEntries = useMemo(() => {
+    let result = [...entries];
+
+    // Media type filter
+    if (mediaTypeFilter !== 'ALL') {
+      result = result.filter((e) => e.mediaType === mediaTypeFilter);
+    }
+
+    // Status filter
+    if (statusFilter !== 'ALL') {
+      result = result.filter((e) => e.status === statusFilter);
+    }
+
+    // Platform filter
+    if (platformFilter !== 'ALL') {
+      result = result.filter((e) => e.platform === platformFilter);
+    }
+
+    // Search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.title.toLowerCase().includes(q) ||
+          e.originalTitle?.toLowerCase().includes(q) ||
+          e.genres?.some((g) => g.toLowerCase().includes(q)) ||
+          e.review?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === 'RATING') {
+        return (b.rating || 0) - (a.rating || 0);
+      }
+      if (sortBy === 'EPISODES') {
+        return (b.currentEpisode || 0) - (a.currentEpisode || 0);
+      }
+      if (sortBy === 'TITLE') {
+        return a.title.localeCompare(b.title);
+      }
+      // UPDATED default
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+
+    return result;
+  }, [entries, mediaTypeFilter, statusFilter, platformFilter, searchQuery, sortBy]);
+
+  // Actions
+  const handleAddEntry = (newEntry: WatchEntry) => {
+    const updated = [newEntry, ...entries];
+    setEntries(updated);
+    saveStoredWatchList(updated);
+  };
+
+  const handleSaveEntry = (updatedEntry: WatchEntry) => {
+    const updated = entries.map((e) => (e.id === updatedEntry.id ? updatedEntry : e));
+    setEntries(updated);
+    saveStoredWatchList(updated);
+  };
+
+  const handleDeleteEntry = (id: string) => {
+    const updated = entries.filter((e) => e.id !== id);
+    setEntries(updated);
+    saveStoredWatchList(updated);
+  };
+
+  // Quick +1 episode increment from card
+  const handleQuickEpisodeAdd = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const updated = entries.map((item) => {
+      if (item.id === id) {
+        const nextEp = (item.currentEpisode || 0) + 1;
+        const isComplete = item.totalEpisodes ? nextEp >= item.totalEpisodes : false;
+        return {
+          ...item,
+          currentEpisode: nextEp,
+          status: isComplete ? 'COMPLETED' : item.status,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return item;
+    });
+    setEntries(updated);
+    saveStoredWatchList(updated);
+  };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-500">
+        <div className="flex items-center gap-2">
+          <Film className="w-5 h-5 animate-pulse text-rose-500" />
+          <span>Memuat WatchVault Anda...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
+      {/* Header */}
+      <Header
+        onOpenAddModal={() => setIsAddModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        totalEntries={entries.length}
+      />
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        {/* Statistics Banner */}
+        <StatsOverview entries={entries} />
+
+        {/* Filters & Search */}
+        <FilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          mediaTypeFilter={mediaTypeFilter}
+          onMediaTypeChange={setMediaTypeFilter}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          platformFilter={platformFilter}
+          onPlatformChange={setPlatformFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          platforms={platforms}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        {/* Media Grid */}
+        {filteredEntries.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-5">
+            {filteredEntries.map((entry) => (
+              <WatchCard
+                key={entry.id}
+                entry={entry}
+                onClick={() => setActiveEntry(entry)}
+                onQuickEpisodeAdd={handleQuickEpisodeAdd}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="py-20 text-center flex flex-col items-center justify-center bg-zinc-900/40 border border-zinc-800/80 rounded-3xl p-8">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mb-3">
+              <Ghost className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-zinc-200">Tidak ada tontonan ditemukan</h3>
+            <p className="text-xs text-zinc-400 max-w-sm mt-1 mb-5">
+              Coba ganti filter tipe tontonan/status atau cari dengan kata kunci lain.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setMediaTypeFilter('ALL');
+                setStatusFilter('ALL');
+                setPlatformFilter('ALL');
+              }}
+              className="text-xs text-rose-400 hover:text-rose-300 font-semibold underline"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              Reset Semua Filter
+            </button>
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-900 bg-zinc-950 py-6 text-center text-xs text-zinc-500">
+        <p>WatchVault &bull; Personal Cinema, Series & Anime Archive</p>
+      </footer>
+
+      {/* Modals */}
+      <WatchDetailModal
+        entry={activeEntry}
+        isOpen={Boolean(activeEntry)}
+        onClose={() => setActiveEntry(null)}
+        onSave={handleSaveEntry}
+        onDelete={handleDeleteEntry}
+      />
+
+      <AddWatchModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddEntry}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        entries={entries}
+        onRefreshData={(newEntries) => setEntries(newEntries)}
+      />
     </div>
   );
 }

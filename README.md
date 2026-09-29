@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎬 WatchVault - Personal Movies, Series & Anime Tracker
 
-## Getting Started
+WatchVault adalah platform cloud pribadi untuk melacak seluruh tontonan layar Anda: Film bioskop, Serial/TV Show barat, Drama Korea (Drakor), dan Anime dalam satu tempat yang rapi dan terorganisir.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Fitur Utama
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- 🎥 **Multi-Format Support:** Melacak **Film Bioskop**, **Series / Drakor**, dan **Anime**.
+- 🔍 **Otomasi Metadata TMDB:** Terhubung dengan The Movie Database (TMDB API) untuk menarik cover poster resmi, sinopsis, developer/studio, genre, dan tahun rilis otomatis (disertai fallback database offline siap pakai).
+- ⏱️ **Episode Progress Tracker:** Melacak progres episode serial dan anime (*misal: Ep 8 / 12*) dengan tombol cepat **+1 Episode** langsung dari kartu tontonan.
+- 🍿 **Katalog Platform Tontonan:** Filter tempat Anda menonton (Bioskop XXI, Netflix, Disney+, Prime Video, Bstation, Crunchyroll, TV Lokal, Laptop).
+- 📝 **Ulasan & Catatan Teori (Markdown):** Simpan ulasan pribadi, teori misteri alur cerita, atau kutipan dialog berkesan.
+- 📊 **Statistik Otomatis:** Menghitung total film tamat, total episode yang sudah ditonton, estimasi jam tonton, dan rata-rata skor rating.
+- 💾 **Backup & Restore (.JSON):** Ekspor dan impor seluruh data arsip tontonan Anda kapan saja.
+- ☁️ **Siap Deploy Cloud ($0/Bulan):** Siap di-deploy ke Vercel dan diakses dari HP atau browser mana pun.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Cara Menjalankan Secara Lokal
 
-## Learn More
+1. Buka terminal di folder proyek:
+   ```bash
+   cd "D:\Program Files\VS Code File\watch-vault"
+   ```
+2. Jalankan development server:
+   ```bash
+   npm run dev
+   ```
+3. Buka browser di **[http://localhost:3000](http://localhost:3000)** (atau port 3001 jika port 3000 sedang digunakan oleh GameVault).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔑 Mendapatkan TMDB API Key (Gratis)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Daftar akun di [themoviedb.org](https://www.themoviedb.org/).
+2. Masuk ke **Settings > API** ([themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)).
+3. Buat API Key gratis (pilih jenis *Developer / Personal*).
+4. Di WatchVault, buka menu **Pengaturan** di pojok kanan atas, tempel API Key Anda, lalu klik **Simpan**.
