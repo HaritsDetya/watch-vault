@@ -1,4 +1,5 @@
 export type MediaType = 'MOVIE' | 'SERIES' | 'ANIME';
+export type AnimeType = 'SERIES' | 'MOVIE';
 
 export type WatchStatus = 'WATCHING' | 'COMPLETED' | 'PLAN_TO_WATCH' | 'ON_HOLD' | 'DROPPED';
 
@@ -8,6 +9,7 @@ export interface WatchEntry {
   title: string;
   originalTitle?: string;
   mediaType: MediaType;
+  animeType?: AnimeType; // Membedakan Anime Movie (Film layar lebar) vs Anime Series (Episodik)
   posterImage: string;
   backdropImage?: string;
   status: WatchStatus;

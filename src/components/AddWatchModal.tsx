@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { WatchEntry, WatchStatus, MediaType } from '@/types/watch';
+import { WatchEntry, WatchStatus, MediaType, AnimeType } from '@/types/watch';
 import { searchTmdb } from '@/lib/tmdb';
 import { Search, Plus, Sparkles, X, Loader2, Film, Tv, PenTool } from 'lucide-react';
 
@@ -25,10 +25,12 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
   // Form parameters
   const [status, setStatus] = useState<WatchStatus>('WATCHING');
   const [mediaType, setMediaType] = useState<MediaType>('MOVIE');
+  const [animeType, setAnimeType] = useState<AnimeType>('SERIES');
   const [platform, setPlatform] = useState('Netflix');
   const [rating, setRating] = useState<number>(0);
   const [currentEpisode, setCurrentEpisode] = useState<number>(1);
   const [totalEpisodes, setTotalEpisodes] = useState<number>(12);
+  const [manualRuntime, setManualRuntime] = useState<number>(120);
 
   // Manual entry state
   const [manualTitle, setManualTitle] = useState('');
@@ -56,8 +58,16 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
   const handleSelectMedia = (item: any) => {
     setSelectedMedia(item);
     setMediaType(item.mediaType);
+    if (item.animeType) {
+      setAnimeType(item.animeType);
+    } else if (item.mediaType === 'ANIME') {
+      setAnimeType(item.totalEpisodes && item.totalEpisodes > 1 ? 'SERIES' : 'MOVIE');
+    }
     if (item.totalEpisodes) {
       setTotalEpisodes(item.totalEpisodes);
+    }
+    if (item.runtimeMinutes) {
+      setManualRuntime(item.runtimeMinutes);
     }
   };
 
@@ -65,7 +75,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
     e.preventDefault();
     if (!selectedMedia) return;
 
-    const isEpisodic = mediaType === 'SERIES' || mediaType === 'ANIME';
+    const isEpisodic = mediaType === 'SERIES' || (mediaType === 'ANIME' && animeType === 'SERIES');
 
     const newEntry: WatchEntry = {
       id: `watch-${Date.now()}`,
@@ -73,6 +83,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
       title: selectedMedia.title,
       originalTitle: selectedMedia.originalTitle,
       mediaType,
+      animeType: mediaType === 'ANIME' ? animeType : undefined,
       posterImage: selectedMedia.posterImage,
       backdropImage: selectedMedia.backdropImage,
       status,
@@ -80,6 +91,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
       rating,
       currentEpisode: isEpisodic ? (status === 'COMPLETED' ? totalEpisodes : currentEpisode) : undefined,
       totalEpisodes: isEpisodic && totalEpisodes > 0 ? totalEpisodes : undefined,
+      runtimeMinutes: !isEpisodic ? (selectedMedia.runtimeMinutes || manualRuntime) : undefined,
       genres: selectedMedia.genres || ['Drama'],
       releaseYear: selectedMedia.releaseYear,
       review: '',
@@ -96,12 +108,13 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
     e.preventDefault();
     if (!manualTitle.trim()) return;
 
-    const isEpisodic = mediaType === 'SERIES' || mediaType === 'ANIME';
+    const isEpisodic = mediaType === 'SERIES' || (mediaType === 'ANIME' && animeType === 'SERIES');
 
     const newEntry: WatchEntry = {
       id: `watch-${Date.now()}`,
       title: manualTitle.trim(),
       mediaType,
+      animeType: mediaType === 'ANIME' ? animeType : undefined,
       posterImage: manualPoster.trim() || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=600&auto=format&fit=crop',
       backdropImage: manualPoster.trim() || undefined,
       status,
@@ -109,6 +122,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
       rating,
       currentEpisode: isEpisodic ? currentEpisode : undefined,
       totalEpisodes: isEpisodic && totalEpisodes > 0 ? totalEpisodes : undefined,
+      runtimeMinutes: !isEpisodic ? manualRuntime : undefined,
       genres: manualGenre ? manualGenre.split(',').map(g => g.trim()) : ['General'],
       releaseYear: manualYear.trim() || undefined,
       createdAt: new Date().toISOString(),
@@ -254,7 +268,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
               {/* Form Config once item selected */}
               {selectedMedia && (
                 <form onSubmit={handleSubmitApi} className="space-y-4 pt-3 border-t border-zinc-800">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className={`grid grid-cols-1 ${mediaType === 'ANIME' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-3`}>
                     <div>
                       <label className="block text-xs font-medium text-zinc-400 mb-1.5">Tipe Media</label>
                       <select
@@ -267,6 +281,20 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                         <option value="ANIME">Anime</option>
                       </select>
                     </div>
+
+                    {mediaType === 'ANIME' && (
+                      <div>
+                        <label className="block text-xs font-medium text-purple-400 mb-1.5">Format Anime</label>
+                        <select
+                          value={animeType}
+                          onChange={(e) => setAnimeType(e.target.value as AnimeType)}
+                          className="w-full bg-zinc-950 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-purple-200 focus:border-purple-500 focus:outline-none"
+                        >
+                          <option value="SERIES">Anime Series (Episodik)</option>
+                          <option value="MOVIE">Anime Movie (Film)</option>
+                        </select>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-xs font-medium text-zinc-400 mb-1.5">Status Tontonan</label>
@@ -295,8 +323,8 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                     </div>
                   </div>
 
-                  {/* If Series / Anime, show episode inputs */}
-                  {(mediaType === 'SERIES' || mediaType === 'ANIME') && (
+                  {/* If Series or Anime Series: show episode inputs */}
+                  {(mediaType === 'SERIES' || (mediaType === 'ANIME' && animeType === 'SERIES')) ? (
                     <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800">
                       <div>
                         <label className="block text-xs text-zinc-400 mb-1">Episode Saat Ini</label>
@@ -317,6 +345,25 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                           onChange={(e) => setTotalEpisodes(Number(e.target.value))}
                           className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white"
                         />
+                      </div>
+                    </div>
+                  ) : (
+                    /* Movie or Anime Movie: show runtime input */
+                    <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-zinc-300">Durasi Film (Menit)</label>
+                        <p className="text-[11px] text-zinc-500">Estimasi durasi film layar lebar</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          value={manualRuntime}
+                          onChange={(e) => setManualRuntime(Number(e.target.value))}
+                          className="w-24 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-center text-white"
+                          placeholder="120"
+                        />
+                        <span className="text-xs text-zinc-400">menit</span>
                       </div>
                     </div>
                   )}
@@ -346,7 +393,7 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className={`grid grid-cols-1 ${mediaType === 'ANIME' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-3`}>
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1.5">Tipe Media</label>
                   <select
@@ -359,6 +406,19 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                     <option value="ANIME">Anime</option>
                   </select>
                 </div>
+                {mediaType === 'ANIME' && (
+                  <div>
+                    <label className="block text-xs font-medium text-purple-400 mb-1.5">Format Anime</label>
+                    <select
+                      value={animeType}
+                      onChange={(e) => setAnimeType(e.target.value as AnimeType)}
+                      className="w-full bg-zinc-950 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-purple-200 focus:border-purple-500 focus:outline-none"
+                    >
+                      <option value="SERIES">Anime Series (Episodik)</option>
+                      <option value="MOVIE">Anime Movie (Film)</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1.5">Status</label>
                   <select
@@ -384,6 +444,51 @@ export const AddWatchModal: React.FC<AddWatchModalProps> = ({ isOpen, onClose, o
                   />
                 </div>
               </div>
+
+              {/* Episode Inputs if Series or Anime Series */}
+              {(mediaType === 'SERIES' || (mediaType === 'ANIME' && animeType === 'SERIES')) ? (
+                <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-zinc-950/60 border border-zinc-800">
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Episode Saat Ini</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={currentEpisode}
+                      onChange={(e) => setCurrentEpisode(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Total Episode</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={totalEpisodes}
+                      onChange={(e) => setTotalEpisodes(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Duration Input if Movie or Anime Movie */
+                <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 flex items-center justify-between gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-300">Durasi Film (Menit)</label>
+                    <p className="text-[11px] text-zinc-500">Estimasi durasi film layar lebar</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={manualRuntime}
+                      onChange={(e) => setManualRuntime(Number(e.target.value))}
+                      className="w-24 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-center text-white"
+                      placeholder="120"
+                    />
+                    <span className="text-xs text-zinc-400">menit</span>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">URL Gambar Poster (Opsional)</label>

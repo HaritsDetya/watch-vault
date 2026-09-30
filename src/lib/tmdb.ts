@@ -36,6 +36,7 @@ export const FALLBACK_MEDIA_DATABASE: {
   title: string;
   originalTitle?: string;
   mediaType: MediaType;
+  animeType?: 'SERIES' | 'MOVIE';
   posterImage: string;
   backdropImage: string;
   releaseYear: string;
@@ -132,10 +133,39 @@ export const FALLBACK_MEDIA_DATABASE: {
 
   // ANIME
   {
+    id: 372058,
+    title: 'Your Name.',
+    originalTitle: '君の名は。',
+    mediaType: 'ANIME',
+    animeType: 'MOVIE',
+    posterImage: 'https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6qFsLWaHqHN4.jpg',
+    backdropImage: 'https://image.tmdb.org/t/p/original/7Xunp0079C1PqU0WvPps0n4jTjW.jpg',
+    releaseYear: '2016',
+    rating: 8.5,
+    genres: ['Animation', 'Romance', 'Drama'],
+    runtimeMinutes: 106,
+    overview: 'Dua remaja, Mitsuha di desa dan Taki di Tokyo, mendapati diri mereka secara ajaib bertukar tubuh dalam mimpi.'
+  },
+  {
+    id: 129,
+    title: 'Spirited Away',
+    originalTitle: '千と千尋の神隠し',
+    mediaType: 'ANIME',
+    animeType: 'MOVIE',
+    posterImage: 'https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg',
+    backdropImage: 'https://image.tmdb.org/t/p/original/mSDsSDwaP3E7dEfUPWy4J0djt4O.jpg',
+    releaseYear: '2001',
+    rating: 8.5,
+    genres: ['Animation', 'Family', 'Fantasy'],
+    runtimeMinutes: 125,
+    overview: 'Chihiro yang berusia 10 tahun terperangkap di dunia roh pemandian para dewa setelah orang tuanya berubah menjadi babi.'
+  },
+  {
     id: 209867,
     title: 'Frieren: Beyond Journey\'s End',
     originalTitle: '葬送のフリーレン',
     mediaType: 'ANIME',
+    animeType: 'SERIES',
     posterImage: 'https://image.tmdb.org/t/p/w500/dqzenchTd7lp5zht7BdlqM7RBhD.jpg',
     backdropImage: 'https://image.tmdb.org/t/p/original/4HodYYKEIsGOdinkGi2Ucz6X9i0.jpg',
     releaseYear: '2023',
@@ -150,6 +180,7 @@ export const FALLBACK_MEDIA_DATABASE: {
     title: 'Attack on Titan',
     originalTitle: '進撃の巨人',
     mediaType: 'ANIME',
+    animeType: 'SERIES',
     posterImage: 'https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg',
     backdropImage: 'https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2LG9Gud.jpg',
     releaseYear: '2013',
@@ -164,6 +195,7 @@ export const FALLBACK_MEDIA_DATABASE: {
     title: 'Jujutsu Kaisen',
     originalTitle: '呪術廻戦',
     mediaType: 'ANIME',
+    animeType: 'SERIES',
     posterImage: 'https://image.tmdb.org/t/p/w500/fHpKW59z9yA046G6QY9eH99tE5F.jpg',
     backdropImage: 'https://image.tmdb.org/t/p/original/jBJWaqoSCiARWtfV0Glq6YmmEG9.jpg',
     releaseYear: '2020',
@@ -178,6 +210,7 @@ export const FALLBACK_MEDIA_DATABASE: {
     title: 'Solo Leveling',
     originalTitle: '俺だけレベルアップな件',
     mediaType: 'ANIME',
+    animeType: 'SERIES',
     posterImage: 'https://image.tmdb.org/t/p/w500/geCRueV3ElhRTr0xtJuClJ7xtIj.jpg',
     backdropImage: 'https://image.tmdb.org/t/p/original/gJL5idqDjh789Y6879R3f0QkG2E.jpg',
     releaseYear: '2024',
@@ -207,8 +240,13 @@ export async function searchTmdb(query: string, customApiKey?: string) {
             (item.genre_ids?.includes(16) && (item.original_name?.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/) || item.original_title?.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/)));
 
           let mediaType: MediaType = 'MOVIE';
-          if (isAnime) mediaType = 'ANIME';
-          else if (item.media_type === 'tv') mediaType = 'SERIES';
+          let animeType: 'SERIES' | 'MOVIE' | undefined = undefined;
+          if (isAnime) {
+            mediaType = 'ANIME';
+            animeType = item.media_type === 'tv' ? 'SERIES' : 'MOVIE';
+          } else if (item.media_type === 'tv') {
+            mediaType = 'SERIES';
+          }
 
           const release = item.release_date || item.first_air_date || '';
           const poster = item.poster_path 
@@ -221,6 +259,7 @@ export async function searchTmdb(query: string, customApiKey?: string) {
             title: item.title || item.name || 'Untitled',
             originalTitle: item.original_title || item.original_name,
             mediaType,
+            animeType,
             posterImage: poster,
             backdropImage: backdrop,
             releaseYear: release ? release.slice(0, 4) : undefined,

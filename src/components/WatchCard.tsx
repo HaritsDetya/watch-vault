@@ -18,7 +18,10 @@ export const WatchCard: React.FC<WatchCardProps> = ({ entry, onClick, onQuickEpi
       case 'SERIES':
         return { label: 'Series', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30', icon: Tv };
       case 'ANIME':
-        return { label: 'Anime', bg: 'bg-pink-500/20 text-pink-300 border-pink-500/30', icon: Sparkles };
+        if (entry.animeType === 'MOVIE') {
+          return { label: 'Anime Movie', bg: 'bg-purple-500/20 text-purple-300 border-purple-500/30', icon: Film };
+        }
+        return { label: 'Anime Series', bg: 'bg-pink-500/20 text-pink-300 border-pink-500/30', icon: Sparkles };
     }
   };
 
@@ -40,7 +43,7 @@ export const WatchCard: React.FC<WatchCardProps> = ({ entry, onClick, onQuickEpi
   const mediaInfo = getMediaTypeBadge();
   const statusInfo = getStatusBadge();
   const MediaIcon = mediaInfo.icon;
-  const isEpisodic = entry.mediaType === 'SERIES' || entry.mediaType === 'ANIME';
+  const isEpisodic = entry.mediaType === 'SERIES' || (entry.mediaType === 'ANIME' && entry.animeType !== 'MOVIE');
 
   return (
     <div
